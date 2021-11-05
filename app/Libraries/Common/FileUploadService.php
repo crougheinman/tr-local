@@ -6,7 +6,7 @@ use App\Libraries\Common\RandomGenerator;
  * 
  * The File System library is a library that manages 
  * the files on the server.
- * @author Bill Dwight Ijiran <dwight.ijiran@gmail.com>
+ * @author Bill Dwight Ijiran <dwight.ijiran@gmail.com> (Original) Modded by Greg
  */
 class FileSystem
 {
@@ -20,25 +20,19 @@ class FileSystem
     ];
 
     public const FILE_TYPE = [
-        'DRIVERS_LICENSE' => 1,
-        'IC_NO' => 2,
-        'PASSPORT' => 3,
-        'VEHICLE_REGISTRATION' => 4,
-        'PROFILE_PHOTO' => 5,
-        'WORK_PERMIT' => 6,
-        'AGREEMENT' => 7,
-        'PAYMENT_SLIP' => 8
+        'DEPOSIT_ATTACHMENT' => 1,
+        'REG_FILE_BIR_COR' => 2,
+        'REG_FILE_DTI' => 3,
+        'REG_FILE_BUSINESS_CLEARANCE' => 4,
+        'REG_FILE_DOT_CERT' => 5,
     ];
 
     public const FILE_TYPE_VALUE = [
-        1 => "Driver's License",
-        2 => 'IC No',
-        3 => 'Passport',
-        4 => 'Vehicle Registration',
-        5 => 'Profile Photo',
-        6 => 'Work Permit',
-        7 => 'Agreement',
-        8 => 'Payment Slip'
+        1 => "Deposit Attachment",
+        2 => 'BIR',
+        3 => 'DTI',
+        4 => 'Business Clearance',
+        5 => 'DOT',
     ];
 
     public const PATH = [
@@ -47,14 +41,11 @@ class FileSystem
     ];
 
     public const KEY_VALUES = [
-        1 => 'driving_license_file',
-        2 => 'ic_file',
-        3 => 'passport_file',
-        4 => 'vehicle_registration_file',
-        5 => 'profile_photo',
-        6 => 'work_permit',
-        7 => 'agreement',
-        8 => 'payment_slip'
+        1 => 'deposit_attachment',
+        2 => 'file_bir',
+        3 => 'file_dti',
+        4 => 'file_bc',
+        5 => 'file_dot',
     ];
 
     /**
@@ -63,7 +54,7 @@ class FileSystem
     public function __construct()
     {
         // Use the Files table.
-        $this->FileTable = new \App\Models\Files();
+        $this->Files = new \App\Models\Files();
 		$this->random = new RandomGenerator();
     }
 
@@ -152,13 +143,13 @@ class FileSystem
             $newFile->modified_by = $createdBy;
 
             // Insert the file record into the database.
-            if (!$this->FileTable->save($newFile)) {
+            if (!$this->Files->save($newFile)) {
                 $numberOfFailedFiles += 1;
-                $debug_string = $this->FileTable->errors();
+                $debug_string = $this->Files->errors();
                 continue;
             }
             // Get the insert id. 
-            $fileId = $this->FileTable->getInsertId();
+            $fileId = $this->Files->getInsertId();
 
             // Construct the path. 
             if (!file_exists($this::PATH['UPLOAD_DIR'])) {
@@ -204,7 +195,7 @@ class FileSystem
      */
     public function retrieveFiles($user_id)
     {
-        $files = $this->FileTable->where('owner_id', $user_id)
+        $files = $this->Files->where('owner_id', $user_id)
             ->where('deleted_at', NULL)
             ->findAll();
 
@@ -251,7 +242,7 @@ class FileSystem
      */
     public function retrieveFilesSingle($id)
     {
-        $files = $this->FileTable->where('id', $id)
+        $files = $this->Files->where('id', $id)
             ->where('deleted_at IS NULL')
             ->findAll();
 
@@ -301,7 +292,7 @@ class FileSystem
      */
     public function delete($deletedBy, $id)
     {
-        $file = $this->FileTable->find($id);
+        $file = $this->Files->find($id);
 
         if (!$file) {
             return false;
@@ -309,9 +300,9 @@ class FileSystem
 
         $file->modified_by = $deletedBy;
         $file->modified_at = date('Y-m-d H:i:s');
-        $this->FileTable->save($file);
+        $this->Files->save($file);
 
-        if (!$this->FileTable->delete($id)) {
+        if (!$this->Files->delete($id)) {
             return false;
         }
 
@@ -411,7 +402,7 @@ class FileSystem
             ]
         ];
 
-        $profilePhoto = $this->FileTable->where('file_type', $this::FILE_TYPE['PROFILE_PHOTO'])
+        $profilePhoto = $this->Files->where('file_type', $this::FILE_TYPE['PROFILE_PHOTO'])
             ->where('owner_id', $userId)
             ->where('deleted_at IS NULL')
             ->first();
@@ -435,7 +426,7 @@ class FileSystem
      */
     public function getProfilePhoto($userId)
     {
-        $file = $this->FileTable->where('file_type', $this::FILE_TYPE['PROFILE_PHOTO'])
+        $file = $this->Files->where('file_type', $this::FILE_TYPE['PROFILE_PHOTO'])
             ->where('owner_id', $userId)
             ->where('deleted_at IS NULL')
             ->first();
@@ -456,7 +447,7 @@ class FileSystem
      */
     public function removeFileType($adminId, $userId, $type)
     {
-        $file = $this->FileTable->where('file_type', $type)
+        $file = $this->Files->where('file_type', $type)
             ->where('owner_id', $userId)
             ->where('deleted_at IS NULL')
             ->first();
