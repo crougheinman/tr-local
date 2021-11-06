@@ -47,6 +47,12 @@ $routes->get('/', 'Home::index');
  * needing to reload it.
  */
 
+/**
+ * --------------------------------------------------------------------
+ * PreflightCatcher
+ * --------------------------------------------------------------------
+ */
+$routes->options('(:any)', 'PreflightCatcher::options');
 
 /**
  * --------------------------------------------------------------------
@@ -61,6 +67,21 @@ $routes->group('announcements', function($routes)
 	$routes->put('(:num)', 'Announcements::update/$1');
 	$routes->delete('(:num)', 'Announcements::delete/$1');
 });
+
+/**
+ * --------------------------------------------------------------------
+ * Files
+ * --------------------------------------------------------------------
+ */
+$routes->group('files', function($routes)
+{
+	$routes->post('/', 'Files::create');
+	$routes->get('', 'Files::retrieve');
+	$routes->get('(:num)', 'Files::retrieve/$1');
+	$routes->delete('(:num)', 'Files::delete/$1');
+});
+
+
 
 if (file_exists(APPPATH . 'Config/' . ENVIRONMENT . '/Routes.php')) {
     require APPPATH . 'Config/' . ENVIRONMENT . '/Routes.php';

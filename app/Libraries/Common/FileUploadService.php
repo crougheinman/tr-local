@@ -1,4 +1,4 @@
-<?php namespace App\Libraries;
+<?php namespace App\Libraries\Common;
 
 use App\Libraries\Common\RandomGenerator;
 /**
@@ -8,7 +8,7 @@ use App\Libraries\Common\RandomGenerator;
  * the files on the server.
  * @author Bill Dwight Ijiran <dwight.ijiran@gmail.com> (Original) Modded by Greg
  */
-class FileSystem
+class FileUploadService
 {
     // Defined type indicators of a base 64 encoding.
     public const B64_FILETYPE_DEFINITION = [
@@ -25,6 +25,7 @@ class FileSystem
         'REG_FILE_DTI' => 3,
         'REG_FILE_BUSINESS_CLEARANCE' => 4,
         'REG_FILE_DOT_CERT' => 5,
+        'ANNOUNCEMENT_BANNER' => 6,
     ];
 
     public const FILE_TYPE_VALUE = [
@@ -33,10 +34,11 @@ class FileSystem
         3 => 'DTI',
         4 => 'Business Clearance',
         5 => 'DOT',
+        6 => 'Announcement Banner',
     ];
 
     public const PATH = [
-        'UPLOAD_DIR' => 'user_files',
+        'UPLOAD_DIR' => 'attachments',
         'DUMP_DIR' => WRITEPATH . 'dump'
     ];
 
@@ -46,6 +48,7 @@ class FileSystem
         3 => 'file_dti',
         4 => 'file_bc',
         5 => 'file_dot',
+        6 => 'announcement_banner',
     ];
 
     /**
@@ -65,12 +68,11 @@ class FileSystem
      * This function will automatically retrieve the files[] object
      * on the passed request and read from there.
      * 
-     * @param int $createdBy The creator of this save.
-     * @param int $ownerId The owner of these files.
+     * @param int $createdBy The creator and owner of this save.
      * @param Request $request The full request/payload.
      * @return Array|string An array of result per file inside the files object or a general message.
      */
-    public function saveFiles($createdBy, $ownerId, $request)
+    public function saveFiles($createdBy, $request)
     {
         // Check the files object.
         if (!isset($request['files'])) {
@@ -87,7 +89,6 @@ class FileSystem
         $numberOfUploadedFiles = 0;
         $numberOfFailedFiles = 0;
         $totalSizeOfUploadedFiles = 0;
-        $debug_string = '--';
 
         // Copy the files.
         $files = $request['files'];
@@ -131,21 +132,18 @@ class FileSystem
             $newFile->file_ext = $ext;
 
             // Enter file name.
-            $newFile->file_past_name = (isset($file['file_name'])) ? $file['file_name'] : 'Untitled';
-            $newFile->file_name = (isset($file['file_name'])) ? 'UCX_FILE_'.$this->random->generate(10,true).'_'.date('Ymd').'.'.$ext : 'Untitled';
+            $newFile->file_name = (isset($file['file_name'])) ? 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymd').'.'.$ext : 'Untitled';
 
             // Determine the file size.
             $fSize = $this->getFileSize($currentFile[1]);
             $newFile->file_type = $this::FILE_TYPE[$file['title']];
             $newFile->file_size = $fSize;
-            $newFile->owner_id = $ownerId;
             $newFile->created_by = $createdBy;
             $newFile->modified_by = $createdBy;
 
             // Insert the file record into the database.
             if (!$this->Files->save($newFile)) {
                 $numberOfFailedFiles += 1;
-                $debug_string = $this->Files->errors();
                 continue;
             }
             // Get the insert id. 
@@ -156,13 +154,13 @@ class FileSystem
                 // Create the folder.
                 mkdir($this::PATH['UPLOAD_DIR']);
             }
-            if (!file_exists($this::PATH['UPLOAD_DIR'] . '/' . $ownerId)) {
+            if (!file_exists($this::PATH['UPLOAD_DIR'] . '/' . $createdBy)) {
                 // Create the folder.
-                mkdir($this::PATH['UPLOAD_DIR']  . '/' . $ownerId);
+                mkdir($this::PATH['UPLOAD_DIR']  . '/' . $createdBy);
             }
 
             // Create the saveSource.
-            $saveSource = $this::PATH['UPLOAD_DIR'] . '/' . $ownerId . '/' . $newFile->file_name;
+            $saveSource = $this::PATH['UPLOAD_DIR'] . '/' . $createdBy . '/' . $newFile->file_name;
 
             // Save the physicalFile.
             try {
@@ -179,11 +177,104 @@ class FileSystem
             'message' => 'The save process is finished.',
             'number_of_uploaded_files' => $numberOfUploadedFiles,
             'number_of_failed_files' => $numberOfFailedFiles,
-            'debug_string' => $debug_string,
             'total_size_of_uploaded_files' => $totalSizeOfUploadedFiles,
-            'last_file' => $fileId
 
         ];
+    }
+
+    /**
+     * Gets the file from the request. Uploads the file from 
+     * the files object.
+     * 
+     * @param int $createdBy The creator and owner of this save.
+     * @param Request $request The full request/payload.
+     * @return Array|string An array of result per file inside the files object or a general message.
+     */
+    public function saveFile($createdBy, $file)
+    {
+        // Check the files object.
+        if (!isset($file)) {
+            return 'empty payload';
+        }
+
+        // Check if its empty.
+        if (empty($file)) {
+            return 'empty file';
+        }
+
+        if (!isset($file['file'])) {
+            return 'empty physical payload';
+        }
+        
+        if (empty($file['file'])) {
+            return 'empty physical file';
+        }
+
+        // Create new file.
+        $newFile = new \App\Entities\File();
+
+        // Split the file
+        try {
+            $currentFile = explode(",", $file['file']);
+        } catch (\Exception $e) {
+            return $e->getMessage();
+        }
+
+        // Check
+        if (!$currentFile[0] || !$currentFile[1]) {
+            return 'error on exploding the file';
+        }
+
+        // Try to build the file.
+        try {
+            $physicalFile = base64_decode($currentFile[1]);
+        } catch (\Exception $e) {
+            return 'error building the file';
+        }
+
+        // Get the file extension.
+        $ext = $this->getFileType($currentFile[1]);
+        $newFile->file_ext = $ext;
+
+        // Enter file name.
+        $newFile->file_name = (isset($file['file_name'])) ? 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymd').'.'.$ext : 'Untitled';
+
+        // Determine the file size.
+        $fSize = $this->getFileSize($currentFile[1]);
+        $newFile->file_type = $this::FILE_TYPE[$file['title']];
+        $newFile->file_size = $fSize;
+        $newFile->created_by = $createdBy;
+        $newFile->modified_by = $createdBy;
+
+        // Insert the file record into the database.
+        $saved_file = [];
+        if ($this->Files->save($newFile)) {
+            $saved_file['id'] = $this->Files->getInsertId();
+        }else{
+            return 'error saving the file to database';
+        }
+
+        // Construct the path. 
+        if (!file_exists($this::PATH['UPLOAD_DIR'])) {
+            // Create the folder.
+            mkdir($this::PATH['UPLOAD_DIR']);
+        }
+        if (!file_exists($this::PATH['UPLOAD_DIR'] . '/' . $createdBy)) {
+            // Create the folder.
+            mkdir($this::PATH['UPLOAD_DIR']  . '/' . $createdBy);
+        }
+
+        // Create the saveSource.
+        $saveSource = $this::PATH['UPLOAD_DIR'] . '/' . $createdBy . '/' . $newFile->file_name;
+
+        // Save the physicalFile.
+        try {
+            file_put_contents($saveSource, $physicalFile);
+        } catch (\Exception $e) {
+            return 'unable to save the physical file';
+        }
+
+        return $saved_file;
     }
 
     /**
@@ -234,58 +325,55 @@ class FileSystem
     }
 
     /**
-     * Retrieves all the files of the user and creates
-     * an accessible URL out of it.
+     * Retrieves a single file
      *
      * @param [type] $id
      * @return void
      */
-    public function retrieveFilesSingle($id)
+    public function retrieveSingleFile($id)
     {
-        $files = $this->Files->where('id', $id)
+        $file = $this->Files->where('id', $id)
             ->where('deleted_at IS NULL')
-            ->findAll();
+            ->find();
 
-        if (!$files) {
+        if (!$file) {
             return null;
         }
 
-        $fileSet['files'] = [];
+        $fileSet=[];
         $fileValue = [];
-        foreach ($files as $file) {
-            $key = $this::KEY_VALUES[$file->file_type];
-            $isImage = $file->file_ext == "jpg" || $file->file_ext == "png" || $file->file_ext == "gif" ? true : false;
+
+        $isImage = $file->file_ext == "jpg" || $file->file_ext == "png" || $file->file_ext == "gif" ? true : false;
             
-            if ($isImage) {
-                $fileValue = strval($this->getURL($file));
-            } else {
-                try {
-                    $f_content = @file_get_contents($this->getURL($file));
-                    if($f_content){
-                        $fileValue = json_encode(base64_encode(file_get_contents($this->getURL($file))));
-                    }else{
-                        $fileValue = $this->getURL($file);
-                    }
-                } catch (Exception $e) {
-                    $fileValue = $e->getMessage();
+        if ($isImage) {
+            $fileValue = strval($this->getURL($file));
+        } else {
+            try {
+                $f_content = @file_get_contents($this->getURL($file));
+                if($f_content){
+                    $fileValue = json_encode(base64_encode(file_get_contents($this->getURL($file))));
+                }else{
+                    $fileValue = $this->getURL($file);
                 }
-                
+            } catch (Exception $e) {
+                $fileValue = $e->getMessage();
             }
             
-            $fileSet['files'][$key] = [
-                'id' => $file->id,
-                'file_name' => $file->file_name,
-                'file' => $fileValue
-            ];
         }
 
+        $fileSet= [
+            'id' => $file->id,
+            'file_name' => $file->file_name,
+            'file' => $fileValue
+        ];
 
         return $fileSet;
     }
+
     /**
      * Deletes a file by id. 
      * When you delete a file, it gets dumped on the 
-     * writable/dump and gets renamed with a .ucxdump file.
+     * writable/dump and gets renamed with a .trdump file.
      *
      * @param [type] $id
      * @return bool True on success, False on fail.
@@ -326,7 +414,7 @@ class FileSystem
         }
 
         $source = $this::PATH['UPLOAD_DIR'] . '/' . $file->owner_id . '/' . $file->file_name;
-        $dest = $this::PATH['DUMP_DIR'] . '/' . $file->file_name . '.ucxdump';
+        $dest = $this::PATH['DUMP_DIR'] . '/' . $file->file_name . '.trdump';
 
         if (!copy($source, $dest)) {
             return false;
@@ -378,82 +466,10 @@ class FileSystem
      */
     public function getURL($file)
     {
-        return getenv('app.baseURL') .'/'
+        return getenv('app.fileURL') .'/'
         .$this::PATH['UPLOAD_DIR'] . '/'
-        . $file->owner_id . '/'
+        . $file->created_by . '/'
         . $file->file_name;
     }
 
-    /**
-     * Directly sets the profile photo of the user.
-     * This function will delete existing profile photo.
-     * 
-     * @param int $user_id
-     * @param base64 $file
-     * @return bool
-     */
-    public function setProfilePhoto($modifiedBy, $userId, $file)
-    {
-        $request['files'] = [
-            [
-                'title' => 'PROFILE_PHOTO',
-                'file' => $file['file'],
-                'file_name' => $file['file_name']
-            ]
-        ];
-
-        $profilePhoto = $this->Files->where('file_type', $this::FILE_TYPE['PROFILE_PHOTO'])
-            ->where('owner_id', $userId)
-            ->where('deleted_at IS NULL')
-            ->first();
-
-        if ($profilePhoto) {
-            $this->delete($modifiedBy, $profilePhoto->id);
-        }
-
-        if (!$this->saveFiles($modifiedBy, $userId, $request)) {
-            return false;
-        }
-
-        return true;
-    }
-
-    /**
-     * Gets the profile photo of the user.
-     *
-     * @param [type] $userId
-     * @return void
-     */
-    public function getProfilePhoto($userId)
-    {
-        $file = $this->Files->where('file_type', $this::FILE_TYPE['PROFILE_PHOTO'])
-            ->where('owner_id', $userId)
-            ->where('deleted_at IS NULL')
-            ->first();
-
-        if (!$file) {
-            return null;
-        }
-
-        return $this->getURL($file);
-    }
-
-    /**
-     * Removes a current file of the type from user.
-     * Only 1 file per type is allowed per user.
-     * @param [type] $userId
-     * @param [type] $type
-     * @return void
-     */
-    public function removeFileType($adminId, $userId, $type)
-    {
-        $file = $this->Files->where('file_type', $type)
-            ->where('owner_id', $userId)
-            ->where('deleted_at IS NULL')
-            ->first();
-
-        if ($file) {
-            $this->delete($adminId, $file->id);
-        }
-    }
 }

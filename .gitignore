@@ -32,6 +32,7 @@ $RECYCLE.BIN/
 
 # KDE directory preferences
 .directory
+.attachments
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
@@ -125,3 +126,5 @@ nb-configuration.xml
 /phpunit*.xml
 /.phpunit.*.cache
 
+attachments/1/TR_FILE_aakrlld7o5_20211105.jpg
+app/Controllers/Announcements.php

@@ -1,6 +1,7 @@
 <?php 
 namespace App\Controllers;
 use App\Entities\Announcement;
+use App\Libraries\Common\FileUploadService;
 
 class Announcements extends BaseController
 {
@@ -16,12 +17,30 @@ class Announcements extends BaseController
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
+
+        $this->FileUploadService = new FileUploadService();
+        $this->user_id = 1;
     }
     public function create()
     {
         $payload = $this->request->getJSON(true);
         $announcement = new Announcement($payload);
         $announcement->slug = mb_url_title($announcement->title,'-',TRUE);
+
+        if(isset($payload['file'])){
+            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file']);
+    
+            if(!isset($upload_result['id'])){
+                return $this->Response->failed(
+                    'failed',
+                    [
+                        'message' => $upload_result
+                    ]
+                ); 
+            }
+            $announcement->banner = $upload_result['id'];
+        }
+        
 
         if($this->Announcements->save($announcement)){
             return $this->Response->success(
@@ -84,7 +103,7 @@ class Announcements extends BaseController
             );
         }else{
 
-            $announcement = $this->Announcements->findAll();
+            $announcement = $this->Announcements->orderBy('created_at','DESC')->findAll();
 
             
             if(!$announcement){
@@ -106,7 +125,8 @@ class Announcements extends BaseController
     }
     public function update($id)
     {
-        if(!$this->Announcements->find($id)){
+        $search_announcement = $this->Announcements->find($id);
+        if(!$search_announcement){
             return $this->Response->failed(
                 'search_failed',
                 [
@@ -114,8 +134,24 @@ class Announcements extends BaseController
                 ]
             );  
         }
+
         $payload = $this->request->getJSON(true);
         $announcement = new Announcement($payload);
+
+        if(isset($payload['file'])){
+            $this->FileUploadService->delete($this->user_id, $search_announcement->banner);
+            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file']);
+            if(!isset($upload_result['id'])){
+                return $this->Response->failed(
+                    'failed',
+                    [
+                        'message' => $upload_result
+                    ]
+                ); 
+            }
+            $announcement->banner = $upload_result['id'];
+        }
+
         $announcement->id = $id;
         $announcement->slug = mb_url_title($announcement->title,'-',TRUE);
         

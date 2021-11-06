@@ -2,7 +2,7 @@
 
 use CodeIgniter\Model;
 
-class Announcements extends Model
+class Files extends Model
 {
     protected $table      = 'files';
     protected $primaryKey = 'id';
