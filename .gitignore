@@ -32,7 +32,6 @@ $RECYCLE.BIN/
 
 # KDE directory preferences
 .directory
-.attachments
 
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
@@ -62,6 +61,8 @@ writable/uploads/*
 !writable/uploads/index.html
 
 writable/debugbar/*
+
+attachments/*
 
 php_errors.log
 
