@@ -28,7 +28,7 @@ class Announcements extends BaseController
         $announcement->slug = mb_url_title($announcement->title,'-',TRUE);
 
         if(isset($payload['file'])){
-            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file']);
+            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file'],'announcements');
     
             if(!isset($upload_result['id'])){
                 return $this->Response->failed(
@@ -67,6 +67,10 @@ class Announcements extends BaseController
                 $slugged = mb_url_title($slug,'-',TRUE);
                 $announcement = $this->Announcements->where('slug',$slugged)->find();
 
+                //get the file
+                $file = $this->FileUploadService->retrieveSingleFile($announcement->banner);
+                $announcement->file = $file? $file : null ;
+
                 if(!$announcement){
                     return $this->Response->success(
                         'failed',
@@ -85,6 +89,10 @@ class Announcements extends BaseController
             }
             
             $announcement = $this->Announcements->find($slug);
+                
+            //get the file
+            $file = $this->FileUploadService->retrieveSingleFile($announcement->banner);
+            $announcement->file = $file? $file : null ;
 
             if(!$announcement){
                 return $this->Response->success(
@@ -140,7 +148,7 @@ class Announcements extends BaseController
 
         if(isset($payload['file'])){
             $this->FileUploadService->delete($this->user_id, $search_announcement->banner);
-            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file']);
+            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file'],'announcements');
             if(!isset($upload_result['id'])){
                 return $this->Response->failed(
                     'failed',

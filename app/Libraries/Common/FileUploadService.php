@@ -72,7 +72,7 @@ class FileUploadService
      * @param Request $request The full request/payload.
      * @return Array|string An array of result per file inside the files object or a general message.
      */
-    public function saveFiles($createdBy, $request)
+    public function saveFiles($createdBy, $request, $folder)
     {
         // Check the files object.
         if (!isset($request['files'])) {
@@ -136,6 +136,7 @@ class FileUploadService
 
             // Determine the file size.
             $fSize = $this->getFileSize($currentFile[1]);
+            $newFile->folder = $folder;
             $newFile->file_type = $this::FILE_TYPE[$file['title']];
             $newFile->file_size = $fSize;
             $newFile->created_by = $createdBy;
@@ -154,13 +155,20 @@ class FileUploadService
                 // Create the folder.
                 mkdir($this::PATH['UPLOAD_DIR']);
             }
-            if (!file_exists($this::PATH['UPLOAD_DIR'] . '/' . $createdBy)) {
+
+            // Construct the path. 
+            if (!file_exists($this::PATH['UPLOAD_DIR'].'/'.$folder)) {
                 // Create the folder.
-                mkdir($this::PATH['UPLOAD_DIR']  . '/' . $createdBy);
+                mkdir($this::PATH['UPLOAD_DIR'].'/'.$folder);
+            }
+    
+            if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy)) {
+                // Create the folder.
+                mkdir($this::PATH['UPLOAD_DIR']  .'/'.$folder. '/' . $createdBy);
             }
 
             // Create the saveSource.
-            $saveSource = $this::PATH['UPLOAD_DIR'] . '/' . $createdBy . '/' . $newFile->file_name;
+            $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy . '/' . $newFile->file_name;
 
             // Save the physicalFile.
             try {
@@ -187,10 +195,11 @@ class FileUploadService
      * the files object.
      * 
      * @param int $createdBy The creator and owner of this save.
-     * @param Request $request The full request/payload.
+     * @param Request $file The "file" request on the payload.
+     * @param Request $folder The folder entity.
      * @return Array|string An array of result per file inside the files object or a general message.
      */
-    public function saveFile($createdBy, $file)
+    public function saveFile($createdBy, $file, $folder)
     {
         // Check the files object.
         if (!isset($file)) {
@@ -238,9 +247,10 @@ class FileUploadService
 
         // Enter file name.
         $newFile->file_name = (isset($file['file_name'])) ? 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymd').'.'.$ext : 'Untitled';
-
+        
         // Determine the file size.
         $fSize = $this->getFileSize($currentFile[1]);
+        $newFile->folder = $folder;
         $newFile->file_type = $this::FILE_TYPE[$file['title']];
         $newFile->file_size = $fSize;
         $newFile->created_by = $createdBy;
@@ -259,13 +269,20 @@ class FileUploadService
             // Create the folder.
             mkdir($this::PATH['UPLOAD_DIR']);
         }
-        if (!file_exists($this::PATH['UPLOAD_DIR'] . '/' . $createdBy)) {
+        
+        // Construct the path. 
+        if (!file_exists($this::PATH['UPLOAD_DIR'].'/'.$folder)) {
             // Create the folder.
-            mkdir($this::PATH['UPLOAD_DIR']  . '/' . $createdBy);
+            mkdir($this::PATH['UPLOAD_DIR'].'/'.$folder);
+        }
+
+        if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy)) {
+            // Create the folder.
+            mkdir($this::PATH['UPLOAD_DIR']  .'/'.$folder. '/' . $createdBy);
         }
 
         // Create the saveSource.
-        $saveSource = $this::PATH['UPLOAD_DIR'] . '/' . $createdBy . '/' . $newFile->file_name;
+        $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy . '/' . $newFile->file_name;
 
         // Save the physicalFile.
         try {
@@ -334,7 +351,7 @@ class FileUploadService
     {
         $file = $this->Files->where('id', $id)
             ->where('deleted_at IS NULL')
-            ->find();
+            ->first();
 
         if (!$file) {
             return null;
@@ -413,7 +430,7 @@ class FileUploadService
             mkdir($this::PATH['DUMP_DIR']);
         }
 
-        $source = $this::PATH['UPLOAD_DIR'] . '/' . $file->owner_id . '/' . $file->file_name;
+        $source = $this::PATH['UPLOAD_DIR'] . '/' . $file->folder . '/' . $file->created_by . '/' . $file->file_name;
         $dest = $this::PATH['DUMP_DIR'] . '/' . $file->file_name . '.trdump';
 
         if (!copy($source, $dest)) {
@@ -468,6 +485,7 @@ class FileUploadService
     {
         return getenv('app.fileURL') .'/'
         .$this::PATH['UPLOAD_DIR'] . '/'
+        . $file->folder . '/'
         . $file->created_by . '/'
         . $file->file_name;
     }

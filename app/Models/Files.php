@@ -16,6 +16,7 @@ class Files extends Model
         'file_type',
         'file_ext',
         'file_size',
+        'folder',
         'modified_by',
         'created_by',
         'created_at',

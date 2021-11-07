@@ -69,7 +69,7 @@ class Files extends BaseController
             return $this->Response->success(
                 'success',
                 [
-                    'file'=> $this->FileUploadService->retrieveFilesSingle($id)
+                    'file'=> $this->FileUploadService->retrieveSingleFile($id)
                 ]
             );
         }else{

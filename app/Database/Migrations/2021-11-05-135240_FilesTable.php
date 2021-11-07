@@ -34,6 +34,9 @@ class FilesTable extends Migration
                     'type' => 'int',
                     'constraint' => 18,
                 ],
+                'folder' => [
+                    'type' => 'text',
+                ],
                 'modified_by' => [
                     'type' => 'varchar',
                     'constraint' => 32,
