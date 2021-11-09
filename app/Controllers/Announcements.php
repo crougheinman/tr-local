@@ -2,6 +2,7 @@
 namespace App\Controllers;
 use App\Entities\Announcement;
 use App\Libraries\Common\FileUploadService;
+use App\Libraries\Common\Pagination;
 
 class Announcements extends BaseController
 {
@@ -14,11 +15,18 @@ class Announcements extends BaseController
         'HOT_DEAL' => 5
     ];
 
+    public const RENDER_AS = [
+        1 => 'HTML',
+        2 => 'FILE'
+    ];
+
     public function initController(\CodeIgniter\HTTP\RequestInterface $request, \CodeIgniter\HTTP\ResponseInterface $response, \Psr\Log\LoggerInterface $logger)
     {
         parent::initController($request, $response, $logger);
 
         $this->FileUploadService = new FileUploadService();
+        $this->Pagination = new Pagination();
+        //temporary
         $this->user_id = 1;
     }
     public function create()
@@ -123,14 +131,68 @@ class Announcements extends BaseController
                 );
             }
 
+
+            // check if it is paginated
+            $request = \Config\Services::request();
+            if(!$request->getVar('page')){
+
+                return $this->Response->success(
+                    'success',
+                    [
+                        'announcements' => $announcement,
+                    ]
+                );
+
+            }
+
+            $announcement = $this->Pagination->execute(
+                $announcement,
+                $page,
+                MAX_PROPERTIES_PER_PAGE
+            );
+    
             return $this->Response->success(
                 'success',
                 [
-                    'announcements'=> $announcement
+                    'announcements' => $announcement['result'],
+                    'pagination' => $announcement['pagination']
                 ]
             );
         }
     }
+
+    public function page($page = 1)
+    { 
+
+        $announcement = $this->Announcements->orderBy('created_at','DESC')->findAll();
+        
+        if(!$announcement){
+            return $this->Response->success(
+                'failed',
+                [
+                    'message'=> 'id not found'
+                ]
+            );
+        }
+
+        // check if it is paginated
+        
+        $announcement = $this->Pagination->execute(
+            $announcement,
+            $page,
+            MAX_PROPERTIES_PER_PAGE
+        );
+
+        return $this->Response->success(
+            'success',
+            [
+                'announcements' => $announcement['result'],
+                'pagination' => $announcement['pagination']
+            ]
+        );
+    }
+
+
     public function update($id)
     {
         $search_announcement = $this->Announcements->find($id);
@@ -147,6 +209,10 @@ class Announcements extends BaseController
         $announcement = new Announcement($payload);
 
         if(isset($payload['file'])){
+            if(empty($payload['file'])){
+                goto dont_upload;
+            }
+
             $this->FileUploadService->delete($this->user_id, $search_announcement->banner);
             $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file'],'announcements');
             if(!isset($upload_result['id'])){
@@ -158,6 +224,8 @@ class Announcements extends BaseController
                 ); 
             }
             $announcement->banner = $upload_result['id'];
+
+            dont_upload: $upload=false;
         }
 
         $announcement->id = $id;

@@ -19,6 +19,7 @@ class Announcements extends Model
         'date_end',
         'type',
         'banner',
+        'render_as',
         'created_at',
         'created_by',
         'modified_at',

@@ -47,6 +47,11 @@ class AnnouncementsTable extends Migration
 				'type' => 'int',
 				'constraint' => 32,
 			],
+			'render_as' =>[
+				'type' => 'int',
+				'constraint' => 2,
+				'comment' => 'flag column in which it determines what would be rendered: [1]-HTML, [2]-File(Image/PDF)'
+			],
 			'created_at' =>[
 				'type' => 'datetime',
 				'null' => true

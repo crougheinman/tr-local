@@ -63,6 +63,7 @@ $routes->group('announcements', function($routes)
 {
     $routes->post('/', 'Announcements::create');
 	$routes->get('', 'Announcements::retrieve');
+	$routes->get('page/(:num)', 'Announcements::page/$1'); 
 	$routes->get('(:any)', 'Announcements::retrieve/$1'); 
 	$routes->put('(:num)', 'Announcements::update/$1');
 	$routes->delete('(:num)', 'Announcements::delete/$1');
