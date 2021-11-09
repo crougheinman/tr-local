@@ -34,6 +34,10 @@ class FilesTable extends Migration
                     'type' => 'int',
                     'constraint' => 18,
                 ],
+                'entity_id' => [
+                    'type' => 'int',
+                    'constraint' => 18,
+                ],
                 'folder' => [
                     'type' => 'text',
                 ],

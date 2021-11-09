@@ -34,23 +34,33 @@ class Announcements extends BaseController
         $payload = $this->request->getJSON(true);
         $announcement = new Announcement($payload);
         $announcement->slug = mb_url_title($announcement->title,'-',TRUE);
-
-        if(isset($payload['file'])){
-            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file'],'announcements');
-    
-            if(!isset($upload_result['id'])){
-                return $this->Response->failed(
-                    'failed',
-                    [
-                        'message' => $upload_result
-                    ]
-                ); 
-            }
-            $announcement->banner = $upload_result['id'];
-        }
         
 
         if($this->Announcements->save($announcement)){
+
+            if(isset($payload['file'])){
+                $payload['id'] = $announcement->id = $this->Announcements->getInsertId();
+                $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload,'announcements');
+        
+                if(!$this->Announcements->save($announcement)){
+                    return $this->Response->failed(
+                        'failed',
+                        [
+                            'message' => $this->Announcements->errors()
+                        ]
+                    ); 
+                }
+
+                if(!isset($upload_result['id'])){
+                    return $this->Response->failed(
+                        'failed',
+                        [
+                            'message' => $upload_result
+                        ]
+                    ); 
+                }
+                $announcement->banner = $upload_result['id'];
+            }
             return $this->Response->success(
                 'success',
                 [
@@ -131,26 +141,6 @@ class Announcements extends BaseController
                 );
             }
 
-
-            // check if it is paginated
-            $request = \Config\Services::request();
-            if(!$request->getVar('page')){
-
-                return $this->Response->success(
-                    'success',
-                    [
-                        'announcements' => $announcement,
-                    ]
-                );
-
-            }
-
-            $announcement = $this->Pagination->execute(
-                $announcement,
-                $page,
-                MAX_PROPERTIES_PER_PAGE
-            );
-    
             return $this->Response->success(
                 'success',
                 [
@@ -170,7 +160,7 @@ class Announcements extends BaseController
             return $this->Response->success(
                 'failed',
                 [
-                    'message'=> 'id not found'
+                    'message'=> 'no announcements'
                 ]
             );
         }
@@ -212,9 +202,9 @@ class Announcements extends BaseController
             if(empty($payload['file'])){
                 goto dont_upload;
             }
-
+            $payload['id'] = $id;
             $this->FileUploadService->delete($this->user_id, $search_announcement->banner);
-            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload['file'],'announcements');
+            $upload_result = $this->FileUploadService->saveFile($this->user_id, $payload,'announcements');
             if(!isset($upload_result['id'])){
                 return $this->Response->failed(
                     'failed',

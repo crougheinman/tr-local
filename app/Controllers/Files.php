@@ -21,7 +21,9 @@ class Files extends BaseController
     /**
      * Uploads a file and save its information to the database as
      * well as the creator and the upload details.
-     *
+     * @param int $createdBy The creator and owner of this save.
+     * @param Request $request The full request/payload.
+     * @param Request $folder The name of the folder.
      * @return void
      */
     public function create()

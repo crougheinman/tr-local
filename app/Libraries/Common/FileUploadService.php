@@ -70,6 +70,7 @@ class FileUploadService
      * 
      * @param int $createdBy The creator and owner of this save.
      * @param Request $request The full request/payload.
+     * @param Folder $folder The name of the folder.
      * @return Array|string An array of result per file inside the files object or a general message.
      */
     public function saveFiles($createdBy, $request, $folder)
@@ -110,7 +111,12 @@ class FileUploadService
             $newFile = new \App\Entities\File();
 
             // Split the file
-            $currentFile = explode(",", $file['file']);
+            try {
+                $currentFile = explode(",", $file['file']);
+            } catch (\Exception $e) {
+                $numberOfFailedFiles += 1;
+                continue;
+            }
 
             // Check
             if (!$currentFile[0] || !$currentFile[1]) {
@@ -132,7 +138,7 @@ class FileUploadService
             $newFile->file_ext = $ext;
 
             // Enter file name.
-            $newFile->file_name = (isset($file['file_name'])) ? 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymd').'.'.$ext : 'Untitled';
+            $newFile->file_name = 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymdhis').'.'.$ext;
 
             // Determine the file size.
             $fSize = $this->getFileSize($currentFile[1]);
@@ -195,27 +201,27 @@ class FileUploadService
      * the files object.
      * 
      * @param int $createdBy The creator and owner of this save.
-     * @param Request $file The "file" request on the payload.
+     * @param Request $file The request on the payload.
      * @param Request $folder The folder entity.
      * @return Array|string An array of result per file inside the files object or a general message.
      */
-    public function saveFile($createdBy, $file, $folder)
+    public function saveFile($createdBy, $request, $folder)
     {
         // Check the files object.
-        if (!isset($file)) {
+        if (!isset($request['file'])) {
             return 'empty payload';
         }
 
         // Check if its empty.
-        if (empty($file)) {
+        if (empty($request['file'])) {
             return 'empty file';
         }
 
-        if (!isset($file['file'])) {
+        if (!isset($request['file']['file'])) {
             return 'empty physical payload';
         }
-        
-        if (empty($file['file'])) {
+
+        if (empty($request['file']['file'])) {
             return 'empty physical file';
         }
 
@@ -224,7 +230,7 @@ class FileUploadService
 
         // Split the file
         try {
-            $currentFile = explode(",", $file['file']);
+            $currentFile = explode(",", $request['file']['file']);
         } catch (\Exception $e) {
             return $e->getMessage();
         }
@@ -246,12 +252,13 @@ class FileUploadService
         $newFile->file_ext = $ext;
 
         // Enter file name.
-        $newFile->file_name = (isset($file['file_name'])) ? 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymd').'.'.$ext : 'Untitled';
+        $newFile->file_name = 'TR_FILE_'.$this->random->generate(10,true).'_'.date('Ymdhis').'.'.$ext;
         
         // Determine the file size.
         $fSize = $this->getFileSize($currentFile[1]);
+        $newFile->entity_id = $request['id'];
         $newFile->folder = $folder;
-        $newFile->file_type = $this::FILE_TYPE[$file['title']];
+        $newFile->file_type = $this::FILE_TYPE[$request['file']['title']];
         $newFile->file_size = $fSize;
         $newFile->created_by = $createdBy;
         $newFile->modified_by = $createdBy;
