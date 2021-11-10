@@ -73,7 +73,7 @@ class FileUploadService
      * @param Folder $folder The name of the folder.
      * @return Array|string An array of result per file inside the files object or a general message.
      */
-    public function saveFiles($createdBy, $request, $folder)
+    public function saveFiles($createdBy, $request)
     {
         // Check the files object.
         if (!isset($request['files'])) {
@@ -142,7 +142,8 @@ class FileUploadService
 
             // Determine the file size.
             $fSize = $this->getFileSize($currentFile[1]);
-            $newFile->folder = $folder;
+            $newFile->entity_id = $request['id'];
+            $newFile->folder = $request['folder'];
             $newFile->file_type = $this::FILE_TYPE[$file['title']];
             $newFile->file_size = $fSize;
             $newFile->created_by = $createdBy;
@@ -163,18 +164,18 @@ class FileUploadService
             }
 
             // Construct the path. 
-            if (!file_exists($this::PATH['UPLOAD_DIR'].'/'.$folder)) {
+            if (!file_exists($this::PATH['UPLOAD_DIR'].'/'.$request['folder'])) {
                 // Create the folder.
-                mkdir($this::PATH['UPLOAD_DIR'].'/'.$folder);
+                mkdir($this::PATH['UPLOAD_DIR'].'/'.$request['folder']);
             }
     
-            if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy)) {
+            if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$request['folder']. '/' . $createdBy)) {
                 // Create the folder.
-                mkdir($this::PATH['UPLOAD_DIR']  .'/'.$folder. '/' . $createdBy);
+                mkdir($this::PATH['UPLOAD_DIR']  .'/'.$request['folder']. '/' . $createdBy);
             }
 
             // Create the saveSource.
-            $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy . '/' . $newFile->file_name;
+            $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$request['folder']. '/' . $createdBy . '/' . $newFile->file_name;
 
             // Save the physicalFile.
             try {
@@ -302,15 +303,17 @@ class FileUploadService
     }
 
     /**
-     * Retrieves all the files of the user and creates
+     * Retrieves all the files of the entity and creates
      * an accessible URL out of it.
      *
-     * @param [type] $user_id
+     * @param [type] $folder
+     * @param [type] $entity_id
      * @return void
      */
-    public function retrieveFiles($user_id)
+    public function retrieveFiles($folder, $entity_id)
     {
-        $files = $this->Files->where('owner_id', $user_id)
+        $files = $this->Files->where('folder', $folder)
+            ->where('entity_id', $entity_id)
             ->where('deleted_at', NULL)
             ->findAll();
 

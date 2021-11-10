@@ -78,7 +78,7 @@ $routes->group('files', function($routes)
 {
 	$routes->post('/', 'Files::create');
 	$routes->get('', 'Files::retrieve');
-	$routes->get('(:num)', 'Files::retrieve/$1');
+	$routes->get('(:any)/(:num)', 'Files::retrieve/$1/$2');
 	$routes->delete('(:num)', 'Files::delete/$1');
 });
 

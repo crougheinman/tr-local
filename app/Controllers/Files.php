@@ -13,6 +13,7 @@ class Files extends BaseController
         parent::initController($request, $response, $logger);
 
         $this->FileUploadService = new FileUploadService();
+        $this->Files = new \App\Models\Files();
 		$this->user_id = 1;
     }
 
@@ -53,48 +54,39 @@ class Files extends BaseController
         );
     }
 
-    public function retrieve($id = null)
+
+    /**
+     * Uploads a file and save its information to the database as
+     * well as the creator and the upload details.
+     * @param Request $folder The name of the folder.
+     * @param Request $entity_id The name of the folder.
+     * @return void
+     */
+
+    public function retrieve($folder,$entity_id)
     { 
-        if($id!=null){
-            
-            $file = $this->Files->find($id);
 
-            if(!$file){
-                return $this->Response->success(
-                    'failed',
-                    [
-                        'message'=> 'files not found'
-                    ]
-                );
-            }
+        $files = $this->Files
+        ->where('entity_id',$entity_id)
+        ->where('folder',$folder)
+        ->findAll();
 
+        
+        if(!$files){
             return $this->Response->success(
-                'success',
+                'failed',
                 [
-                    'file'=> $this->FileUploadService->retrieveSingleFile($id)
-                ]
-            );
-        }else{
-
-            $file = $this->Files->findAll();
-
-            
-            if(!$file){
-                return $this->Response->success(
-                    'failed',
-                    [
-                        'message'=> 'file not found'
-                    ]
-                );
-            }
-
-            return $this->Response->success(
-                'success',
-                [
-                    'file'=> $this->FileUploadService->retrieveFiles($id)['files']
+                    'message'=> 'file(s) not found'
                 ]
             );
         }
+
+        return $this->Response->success(
+            'success',
+            [
+                'files'=> $files
+            ]
+        );
     }
 
     public function delete($id)
