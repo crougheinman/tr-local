@@ -77,12 +77,12 @@ class FileUploadService
     {
         // Check the files object.
         if (!isset($request['files'])) {
-            return null;
+            return 'no files payload';
         }
 
         // Check if its empty.
         if (empty($request['files'])) {
-            return null;
+            return 'empty file payload';
         }
 
         
@@ -103,6 +103,7 @@ class FileUploadService
 
             if (!isset($file['file'])) {
                 // Mark as failed.
+                return 'empty file key';
                 $numberOfFailedFiles += 1;
                 continue;
             }
@@ -114,6 +115,7 @@ class FileUploadService
             try {
                 $currentFile = explode(",", $file['file']);
             } catch (\Exception $e) {
+                return 'unable to explode: '. $e->getMessage();
                 $numberOfFailedFiles += 1;
                 continue;
             }
@@ -121,6 +123,7 @@ class FileUploadService
             // Check
             if (!$currentFile[0] || !$currentFile[1]) {
                 // Mark as failed.
+                return 'unable to explode II: '. $e->getMessage();
                 $numberOfFailedFiles += 1;
                 continue;
             }
@@ -129,6 +132,7 @@ class FileUploadService
             try {
                 $physicalFile = base64_decode($currentFile[1]);
             } catch (\Exception $e) {
+                return 'unable to encode to base64: '. $e->getMessage();
                 $numberOfFailedFiles += 1;
                 continue;
             }
@@ -169,13 +173,13 @@ class FileUploadService
                 mkdir($this::PATH['UPLOAD_DIR'].'/'.$request['folder']);
             }
     
-            if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$request['folder']. '/' . $createdBy)) {
+            if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$request['folder']. '/' . $request['id'])) {
                 // Create the folder.
-                mkdir($this::PATH['UPLOAD_DIR']  .'/'.$request['folder']. '/' . $createdBy);
+                mkdir($this::PATH['UPLOAD_DIR']  .'/'.$request['folder']. '/' . $request['id']);
             }
 
             // Create the saveSource.
-            $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$request['folder']. '/' . $createdBy . '/' . $newFile->file_name;
+            $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$request['folder']. '/' . $request['id'] . '/' . $newFile->file_name;
 
             // Save the physicalFile.
             try {
@@ -284,13 +288,13 @@ class FileUploadService
             mkdir($this::PATH['UPLOAD_DIR'].'/'.$folder);
         }
 
-        if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy)) {
+        if (!file_exists($this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $request['id'])) {
             // Create the folder.
-            mkdir($this::PATH['UPLOAD_DIR']  .'/'.$folder. '/' . $createdBy);
+            mkdir($this::PATH['UPLOAD_DIR']  .'/'.$folder. '/' . $request['id']);
         }
 
         // Create the saveSource.
-        $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $createdBy . '/' . $newFile->file_name;
+        $saveSource = $this::PATH['UPLOAD_DIR'] .'/'.$folder. '/' . $request['id'] . '/' . $newFile->file_name;
 
         // Save the physicalFile.
         try {
